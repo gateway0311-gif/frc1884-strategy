@@ -32,6 +32,25 @@ interface SessionContextValue {
   reload(): Promise<void>;
 }
 
+const SESSION_KEY = "hub-session";
+
+function rememberedSession(): SessionInfo | null {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    return raw ? (JSON.parse(raw) as SessionInfo) : null;
+  } catch {
+    return null;
+  }
+}
+
+function forgetSession(): void {
+  try {
+    localStorage.removeItem(SESSION_KEY);
+  } catch {
+    // Nothing to forget.
+  }
+}
+
 const SessionContext = createContext<SessionContextValue | null>(null);
 
 export function SessionProvider({ children }: { children: ReactNode }) {
@@ -39,9 +58,18 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const reload = useCallback(async () => {
     try {
-      setInfo(await api<SessionInfo>("/session"));
+      const fresh = await api<SessionInfo>("/session");
+      setInfo(fresh);
+      try {
+        if (fresh.user) localStorage.setItem(SESSION_KEY, JSON.stringify(fresh));
+        else localStorage.removeItem(SESSION_KEY);
+      } catch {
+        // Not being able to remember the session only matters when opening the hub with no signal.
+      }
     } catch {
-      setInfo((previous) => previous ?? { user: null, event: null, signInReady: true });
+      // No signal: carry on as whoever was last signed in on this device, so a
+      // scout can open the hub in the stands and keep working.
+      setInfo((previous) => previous ?? rememberedSession() ?? { user: null, event: null, signInReady: true });
     }
   }, []);
 
@@ -80,12 +108,19 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           body: { name, code },
         });
         clearQueries();
-        setInfo({ user: result.user, event: result.event, signInReady: true });
+        const next = { user: result.user, event: result.event, signInReady: true };
+        try {
+          localStorage.setItem(SESSION_KEY, JSON.stringify(next));
+        } catch {
+          // See above.
+        }
+        setInfo(next);
       },
       async signOut() {
         await api("/session", { method: "DELETE" }).catch(() => undefined);
         disconnectLive();
         clearQueries();
+        forgetSession();
         setInfo({ user: null, event: null, signInReady: true });
       },
       reload: async () => {

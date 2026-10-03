@@ -5,3 +5,5 @@ data/*.db-shm
 data/*.db-wal
 .DS_Store
 public/hub
+test-results
+playwright-report

@@ -10,7 +10,8 @@
     "start": "node dist/server.js",
     "check": "tsc --noEmit && tsc --noEmit -p web/tsconfig.json",
     "test": "vitest run",
-    "seed:demo": "tsx scripts/seed-demo.ts"
+    "seed:demo": "tsx scripts/seed-demo.ts",
+    "test:e2e": "npm run build && playwright test"
   },
   "dependencies": {
     "@fastify/static": "^9.0.0",
@@ -20,6 +21,7 @@
   "devDependencies": {
     "@fontsource/barlow": "^5.3.0",
     "@fontsource/barlow-condensed": "^5.3.0",
+    "@playwright/test": "1.56",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^25.5.0",
     "@types/react": "^18.3.31",

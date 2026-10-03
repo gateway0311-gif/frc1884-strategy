@@ -44,7 +44,7 @@ interface MyResponse {
 
 function useMy() {
   const { event } = useSession();
-  return useQuery<MyResponse>(event ? `my:${event.eventKey}` : null, () => api(`/events/${event!.eventKey}/my`), ["assignment", "schedule", "my"]);
+  return useQuery<MyResponse>(event ? `my:${event.eventKey}` : null, () => api(`/events/${event!.eventKey}/my`), ["assignment", "schedule", "my"], { persist: true });
 }
 
 function openEntry(eventKey: string, slot: { matchKey: string; label: string; teamNumber: number; teamName: string | null; alliance: "red" | "blue" | null; entryId?: string }) {
@@ -116,7 +116,7 @@ export function ScoutHome() {
       </Page>
     );
   }
-  if (my.loading || !my.data) {
+  if (!my.data) {
     return <Page title="Scout">{my.error ? <Notice tone="error">{describeError(my.error)}</Notice> : <Loading />}</Page>;
   }
 
@@ -140,6 +140,7 @@ export function ScoutHome() {
 
   return (
     <Page title={`Hello, ${user!.name.split(" ")[0]}`}>
+      {live === "offline" ? <Notice tone="warn">No signal. You can keep scouting: entries are saved on this phone. Your robots below are the last ones we could fetch.</Notice> : null}
       {outbox.waiting > 0 ? (
         <Notice tone="warn">
           {outbox.waiting === 1 ? "1 entry is" : `${outbox.waiting} entries are`} saved on this phone and waiting to send.

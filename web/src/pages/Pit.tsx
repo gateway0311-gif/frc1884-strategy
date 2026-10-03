@@ -20,7 +20,7 @@ export interface PitTeam {
 
 export function usePitTeams() {
   const { event } = useSession();
-  return useQuery<{ teams: PitTeam[] }>(event ? `pit:${event.eventKey}` : null, () => api(`/events/${event!.eventKey}/pit`), ["pit", "teams"]);
+  return useQuery<{ teams: PitTeam[] }>(event ? `pit:${event.eventKey}` : null, () => api(`/events/${event!.eventKey}/pit`), ["pit", "teams"], { persist: true });
 }
 
 export function PitList() {

@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 // it stale; the live stream calls invalidate(tag) and the query refetches.
 
 interface Entry {
+  // Kept on the device so the page can be shown without a signal.
+  persist: boolean;
   data: unknown;
   error: unknown;
   loadedAt: number;
@@ -29,6 +31,7 @@ function load(key: string): Promise<void> {
       entry.data = data;
       entry.error = null;
       entry.loadedAt = Date.now();
+      if (entry.persist) writeStored(key, data);
     })
     .catch((error) => {
       entry.error = error;
@@ -44,15 +47,43 @@ export function invalidate(tag?: string): void {
   for (const [key, entry] of cache) {
     if (tag && !entry.tags.includes(tag)) continue;
     if (entry.listeners.size === 0) {
-      cache.delete(key);
+      // Nobody is looking: keep what we have (it is still better than nothing
+      // if the signal is gone) but fetch again the next time it is shown.
+      entry.loadedAt = 0;
       continue;
     }
     void load(key);
   }
 }
 
+const STORE_PREFIX = "hub-cache:";
+
+function readStored(key: string): unknown {
+  try {
+    const raw = localStorage.getItem(STORE_PREFIX + key);
+    return raw ? JSON.parse(raw) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function writeStored(key: string, data: unknown): void {
+  try {
+    localStorage.setItem(STORE_PREFIX + key, JSON.stringify(data));
+  } catch {
+    // Storage is full or blocked; the page still works while it is open.
+  }
+}
+
 export function clearQueries(): void {
   cache.clear();
+  try {
+    for (const key of Object.keys(localStorage)) {
+      if (key.startsWith(STORE_PREFIX)) localStorage.removeItem(key);
+    }
+  } catch {
+    // Nothing stored.
+  }
 }
 
 export interface QueryResult<T> {
@@ -62,7 +93,7 @@ export interface QueryResult<T> {
   refresh: () => void;
 }
 
-export function useQuery<T>(key: string | null, fetcher: () => Promise<T>, tags: string[] = []): QueryResult<T> {
+export function useQuery<T>(key: string | null, fetcher: () => Promise<T>, tags: string[] = [], options: { persist?: boolean } = {}): QueryResult<T> {
   const [, setTick] = useState(0);
   const fetcherRef = useRef(fetcher);
   fetcherRef.current = fetcher;
@@ -71,7 +102,8 @@ export function useQuery<T>(key: string | null, fetcher: () => Promise<T>, tags:
     if (!key) return;
     let entry = cache.get(key);
     if (!entry) {
-      entry = { data: undefined, error: null, loadedAt: 0, promise: null, tags, fetcher: () => fetcherRef.current(), listeners: new Set() };
+      const persist = options.persist ?? false;
+      entry = { persist, data: persist ? readStored(key) : undefined, error: null, loadedAt: 0, promise: null, tags, fetcher: () => fetcherRef.current(), listeners: new Set() };
       cache.set(key, entry);
     }
     entry.fetcher = () => fetcherRef.current();
@@ -94,7 +126,7 @@ export function useQuery<T>(key: string | null, fetcher: () => Promise<T>, tags:
   return {
     data: entry?.data as T | undefined,
     error: entry?.error ?? null,
-    loading: !!key && (!entry || (entry.loadedAt === 0 && !entry.error)),
+    loading: !!key && (!entry || (entry.loadedAt === 0 && !entry.error && entry.data === undefined)),
     refresh,
   };
 }

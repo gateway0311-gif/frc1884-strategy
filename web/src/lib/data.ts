@@ -40,7 +40,8 @@ export function useSchedule() {
       clockOffsetMs = Date.parse(result.serverTime) - (sent + received) / 2;
       return result;
     },
-    ["schedule"]
+    ["schedule"],
+    { persist: true }
   );
 }
 
@@ -57,7 +58,7 @@ export interface EventTeam {
 
 export function useTeams() {
   const { event } = useSession();
-  return useQuery<{ teams: EventTeam[] }>(event ? `teams:${event.eventKey}` : null, () => api(`/events/${event!.eventKey}/teams`), ["teams"]);
+  return useQuery<{ teams: EventTeam[] }>(event ? `teams:${event.eventKey}` : null, () => api(`/events/${event!.eventKey}/teams`), ["teams"], { persist: true });
 }
 
 export function formatTime(ms: number | null | undefined): string {

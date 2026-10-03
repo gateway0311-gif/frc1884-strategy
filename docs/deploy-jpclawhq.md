@@ -90,3 +90,22 @@ Runtime requirements:
 - `/srv/frc1884-strategy/log/` writable by the app user
 - a GitHub repository webhook pointed at
   `https://griffins1884.org/github-webhook/frc1884-strategy`
+
+## Griffins Hub
+
+The hub at `/hub` is built by the same `npm run build` the deploy script already runs, so no change to the deploy steps is needed. It needs these in the service environment (for example in a drop-in at `/etc/systemd/system/frc1884-strategy.service.d/hub.conf`, readable only by root):
+
+```ini
+[Service]
+Environment=SCOUT_CODE=...
+Environment=MANAGER_CODE=...
+Environment=STRATEGIST_CODE=...
+Environment=LEAD_CODE=...
+Environment=SESSION_SECRET=...   # at least 16 random characters
+Environment=TBA_API_KEY=...
+Environment=ANTHROPIC_API_KEY=...
+```
+
+Then `sudo systemctl daemon-reload && sudo systemctl restart frc1884-strategy.service`. The hub's Admin page shows which settings the server can see.
+
+The live stream is plain HTTP (server-sent events) and passes through the existing nginx config unchanged. The database gains new tables on first start; existing tables and data are kept.

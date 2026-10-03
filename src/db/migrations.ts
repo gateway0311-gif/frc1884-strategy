@@ -184,6 +184,26 @@ const MIGRATIONS: Migration[] = [
       `);
     },
   },
+  {
+    id: 6,
+    name: "hub_picks",
+    up(db) {
+      db.exec(`
+        CREATE TABLE pick_list_entries (
+          event_key TEXT NOT NULL,
+          team_number INTEGER NOT NULL,
+          tier TEXT NOT NULL CHECK (tier IN ('first', 'second', 'third', 'avoid')),
+          position INTEGER NOT NULL,
+          note TEXT NOT NULL DEFAULT '',
+          picked INTEGER NOT NULL DEFAULT 0,
+          updated_by TEXT,
+          updated_at TEXT NOT NULL,
+          PRIMARY KEY (event_key, team_number),
+          FOREIGN KEY (event_key) REFERENCES events(event_key) ON DELETE CASCADE
+        );
+      `);
+    },
+  },
 ];
 
 export function runMigrations(db: Database.Database): number[] {

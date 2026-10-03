@@ -431,3 +431,28 @@ td .chip + .chip { margin-left: 6px; }
 .planner-draw { cursor: crosshair; }
 .planner-erase { cursor: cell; }
 .planner-robot { cursor: grab; }
+
+/* Pick list */
+.picks { list-style: none; margin: 0; padding: 0; min-height: 44px; }
+.picks-empty { color: var(--dim); padding: 8px 0; }
+.pick { display: grid; grid-template-columns: 20px 28px minmax(0, 1fr); gap: 6px 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.pick:last-child { border-bottom: 0; }
+.pick.is-taken .pick-team, .pick.is-taken .pick-figures { opacity: 0.45; }
+.pick.is-taken .pick-team .team-link { text-decoration: line-through; }
+.pick-handle { color: var(--dim); cursor: grab; display: grid; place-items: center; }
+.pick-rank { font-family: var(--display); font-weight: 700; font-size: 1.3rem; color: var(--gold); text-align: right; }
+.pick-team { min-width: 0; display: flex; flex-direction: column; }
+.pick-note { background: none; border: 0; padding: 0; color: var(--dim); font-size: 0.88rem; text-align: left; cursor: text; }
+.pick-note-input { min-height: 36px; padding: 4px 8px; background: var(--navy-950); border: 1px solid var(--line-strong); border-radius: 6px; margin-top: 4px; }
+.pick-figures, .pick-actions { grid-column: 3; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.pick-figures span { display: flex; flex-direction: column; font-variant-numeric: tabular-nums; }
+.pick-figures small { color: var(--dim); font-size: 0.74rem; }
+.pick-actions { gap: 6px; }
+.pick-actions select { min-height: 38px; padding: 4px 8px; background: var(--navy-950); border: 1px solid var(--line-strong); border-radius: var(--radius-small); max-width: 160px; }
+.icon-btn { width: 38px; height: 38px; border-radius: var(--radius-small); border: 1px solid var(--line-strong); background: var(--navy-700); cursor: pointer; font-size: 1.05rem; }
+.pick-taken { min-height: 38px; }
+@media (min-width: 1000px) {
+  .pick { grid-template-columns: 20px 28px minmax(180px, 1.2fr) minmax(0, 1.4fr) auto; }
+  .pick-figures, .pick-actions { grid-column: auto; }
+  .pick-actions { justify-content: flex-end; flex-wrap: nowrap; }
+}

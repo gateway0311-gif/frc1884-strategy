@@ -10,6 +10,7 @@ import { homeFor, NAV, navFor } from "./nav";
 import { AdminPage } from "./pages/Admin";
 import { ManagerPage } from "./pages/Manager";
 import { MorePage } from "./pages/More";
+import { PicksPage } from "./pages/Picks";
 import { PitEntry, PitList } from "./pages/Pit";
 import { ScoutEntry, ScoutHome, ScoutPick } from "./pages/Scout";
 import { SignIn } from "./pages/SignIn";
@@ -48,6 +49,8 @@ function Routes({ path }: { path: string }) {
       return <ScoutHome />;
     case "strategy":
       return <StrategyPage rest={rest} />;
+    case "picks":
+      return <PicksPage />;
     case "manager":
       return <ManagerPage rest={rest} />;
     case "admin":

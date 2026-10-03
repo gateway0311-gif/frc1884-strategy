@@ -1,4 +1,5 @@
 import { db } from "../db/client.js";
+import type { StrategyPlanUpsertBody } from "../types/domain.js";
 
 export function hydrateMatchesForEvent(eventKey: string) {
   const rows = db
@@ -166,4 +167,94 @@ export function loadStrategyPlanWithVersions(planId: number) {
     updatedAt: plan.updated_at,
     phases
   };
+}
+
+// Saves a strategy plan: one plan per match (or one free board per event),
+// with each save kept as a new version per phase. Used by the original
+// strategy page and by the hub.
+export function upsertStrategyPlan(
+  eventKey: string,
+  scope: "scheduled_match" | "free_play",
+  body: StrategyPlanUpsertBody
+): { ok: true; planId: number } | { ok: false; error: "event_not_found" | "match_not_found" } {
+  const existingEvent = db.prepare(`SELECT event_key FROM events WHERE event_key = ?`).get(eventKey);
+  if (!existingEvent) {
+    return { ok: false, error: "event_not_found" };
+  }
+
+  const matchId =
+    scope === "scheduled_match"
+      ? (
+          db.prepare(`SELECT id FROM matches WHERE event_key = ? AND match_key = ?`).get(eventKey, body.matchKey) as
+            | { id: number }
+            | undefined
+        )?.id ?? null
+      : null;
+
+  if (scope === "scheduled_match" && !matchId) {
+    return { ok: false, error: "match_not_found" };
+  }
+
+  const transaction = db.transaction(() => {
+    const existingPlan = db
+      .prepare(`
+        SELECT id
+        FROM strategy_plans
+        WHERE event_key = ?
+          AND scope = ?
+          AND (
+            (? IS NULL AND match_id IS NULL) OR
+            match_id = ?
+          )
+        ORDER BY updated_at DESC
+        LIMIT 1
+      `)
+      .get(eventKey, scope, matchId, matchId) as { id: number } | undefined;
+
+    let planId: number;
+
+    if (existingPlan) {
+      db.prepare(`
+        UPDATE strategy_plans
+        SET title = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).run(body.title ?? null, body.notes ?? null, existingPlan.id);
+      planId = existingPlan.id;
+    } else {
+      const result = db.prepare(`
+        INSERT INTO strategy_plans (event_key, match_id, scope, title, notes)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(eventKey, matchId, scope, body.title ?? null, body.notes ?? null);
+      planId = Number(result.lastInsertRowid);
+    }
+
+    for (const phase of ["auto", "teleop"] as const) {
+      const phaseData = body.phases?.[phase];
+
+      if (phaseData !== undefined) {
+        db.prepare(`
+          INSERT INTO strategy_plan_versions (plan_id, phase, data_json, created_by)
+          VALUES (?, ?, ?, ?)
+        `).run(planId, phase, JSON.stringify(phaseData), body.updatedBy ?? null);
+      }
+    }
+
+    return planId;
+  });
+
+  return { ok: true, planId: transaction() };
+}
+
+export function findMatchPlanId(eventKey: string, matchKey: string): number | null {
+  const row = db
+    .prepare(`
+      SELECT sp.id
+      FROM strategy_plans sp
+      JOIN matches m ON m.id = sp.match_id
+      WHERE sp.event_key = ? AND sp.scope = 'scheduled_match' AND m.match_key = ?
+      ORDER BY sp.updated_at DESC
+      LIMIT 1
+    `)
+    .get(eventKey, matchKey) as { id: number } | undefined;
+  return row?.id ?? null;
 }

@@ -421,3 +421,13 @@ td .chip + .chip { margin-left: 6px; }
 .brief-text ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
 .brief-text p { margin: 6px 0; }
 .brief-caveat { font-size: 0.85rem; }
+
+/* Field planner */
+.planner-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.swatch { width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--line-strong); cursor: pointer; opacity: 0.7; }
+.swatch.is-on { border-color: #fff; opacity: 1; box-shadow: 0 0 0 2px var(--navy-800), 0 0 0 4px #fff; }
+.planner-field { width: 100%; display: block; border-radius: var(--radius-small); border: 2px solid var(--line-strong); touch-action: none; user-select: none; -webkit-user-select: none; background: #f0f5ee; }
+.planner-field text { pointer-events: none; user-select: none; }
+.planner-draw { cursor: crosshair; }
+.planner-erase { cursor: cell; }
+.planner-robot { cursor: grab; }

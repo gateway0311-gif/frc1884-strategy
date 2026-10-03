@@ -11,6 +11,7 @@ import { formatMetric, formatNumber } from "../lib/format";
 import { useQuery } from "../lib/query";
 import { navigate } from "../lib/router";
 import { useSession } from "../lib/session";
+import { MatchPlan } from "../strategy/MatchPlan";
 
 export interface CompiledMetric {
   value: number | null;
@@ -836,6 +837,7 @@ function Matches({ matchKey }: { matchKey: string | null }) {
             <AllianceCard side="blue" outlook={data.outlook.blue} teams={data.teams} ourTeam={data.ourTeam} />
           </div>
           <Brief key={data.outlook.matchKey} kind="match" subject={data.outlook.matchKey} title="Match brief" />
+          <MatchPlan key={`plan-${match.matchKey}`} match={match} ourTeam={data.ourTeam} />
         </>
       ) : null}
     </>

@@ -144,7 +144,7 @@ export function ScoutHome() {
       {outbox.waiting > 0 ? (
         <Notice tone="warn">
           {outbox.waiting === 1 ? "1 entry is" : `${outbox.waiting} entries are`} saved on this phone and waiting to send.
-          {live === "offline" ? " They go automatically when the signal returns." : ""}{" "}
+          {live === "offline" || outbox.unreachable ? " They go automatically when the signal returns." : ""}{" "}
           <button type="button" className="link-btn" onClick={() => void flush()}>
             Send now
           </button>
@@ -401,7 +401,7 @@ export function ScoutEntry({ id }: { id: string }) {
   }
 
   const saveState = entry.dirty
-    ? live === "offline"
+    ? live === "offline" || outbox.unreachable
       ? "Saved on this phone. It sends when the signal returns."
       : "Saving…"
     : entry.status === "submitted"

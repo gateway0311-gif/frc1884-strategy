@@ -132,3 +132,37 @@ test("the original strategy page still loads", async ({ page }) => {
   expect(response?.status()).toBe(200);
   await expect(page).toHaveTitle("Griffins 1884 Strategy");
 });
+
+test("one scout's unsent entry is not sent or shown under another scout's name on a shared phone", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const page = await context.newPage();
+  const signInAs = async (name: string) => {
+    await page.goto("/hub/");
+    await page.getByLabel("Your name").fill(name);
+    await page.getByLabel("Code").fill(CODES.scout);
+    await page.getByRole("button", { name: "Sign in" }).click();
+    await expect(page.locator(".shell")).toBeVisible();
+  };
+
+  await signInAs("Dee First");
+  await page.getByRole("button", { name: "Start scouting" }).click();
+  await expect(page.locator(".entry-head")).toBeVisible();
+  await context.setOffline(true);
+  await page.getByRole("button", { name: "Add 1 to Scoring cycles" }).click();
+  await expect(page.locator(".entry-save")).toContainText("Saved on this phone");
+
+  // The phone is handed over with no signal, then comes back into range.
+  await page.evaluate(() => {
+    document.cookie = "hub_session=; Max-Age=0; path=/";
+    localStorage.removeItem("hub-session");
+  });
+  await context.setOffline(false);
+  await context.clearCookies();
+  await signInAs("Eve Second");
+  await expect(page.getByText("waiting to send")).toHaveCount(0);
+  await expect(page.getByText("Not submitted yet")).toHaveCount(0);
+
+  const manager = await signIn(browser, "Jordi Vila", "manager", { width: 1280, height: 900 });
+  const response = await manager.request.get("/api/hub/events/2026demo/manager/entries?scout=eve%20second");
+  expect((await response.json()).entries).toHaveLength(0);
+});

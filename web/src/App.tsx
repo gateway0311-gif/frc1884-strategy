@@ -74,8 +74,8 @@ export function App() {
     if (user && path === "/") navigate(homeFor(user.role), { replace: true });
   }, [user, path]);
 
-  const signedIn = !!user;
-  useEffect(() => (signedIn ? startOutbox() : undefined), [signedIn]);
+  const signedInAs = user?.name;
+  useEffect(() => (signedInAs ? startOutbox(signedInAs) : undefined), [signedInAs]);
 
   if (loading) {
     return (

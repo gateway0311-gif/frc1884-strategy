@@ -9,6 +9,9 @@ import { invalidate } from "./query";
 
 export interface LocalEntry {
   id: string;
+  // Who started it. A shared phone can hold several scouts' unsent entries;
+  // each is only ever shown to, and sent as, the scout who wrote it.
+  owner?: string;
   // A match entry (the default) or a pit visit.
   kind?: "match" | "pit";
   eventKey: string;
@@ -26,6 +29,15 @@ export interface LocalEntry {
 }
 
 const KEY = "hub-entries-v1";
+let owner: string | null = null;
+
+function ownerKey(name: string): string {
+  return name.replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+function isMine(entry: LocalEntry): boolean {
+  return owner !== null && (entry.owner ?? owner) === owner;
+}
 const listeners = new Set<() => void>();
 let memory: Record<string, LocalEntry> | null = null;
 
@@ -50,25 +62,26 @@ function write(next: Record<string, LocalEntry>): void {
 }
 
 export function getLocal(id: string): LocalEntry | undefined {
-  return read()[id];
+  const entry = read()[id];
+  return entry && isMine(entry) ? entry : undefined;
 }
 
 export function findLocal(eventKey: string, matchKey: string, teamNumber: number): LocalEntry | undefined {
-  return Object.values(read()).find((e) => e.kind !== "pit" && e.eventKey === eventKey && e.matchKey === matchKey && e.teamNumber === teamNumber);
+  return Object.values(read()).find((e) => isMine(e) && e.kind !== "pit" && e.eventKey === eventKey && e.matchKey === matchKey && e.teamNumber === teamNumber);
 }
 
 export function findLocalPit(eventKey: string, teamNumber: number): LocalEntry | undefined {
-  return Object.values(read()).find((e) => e.kind === "pit" && e.eventKey === eventKey && e.teamNumber === teamNumber);
+  return Object.values(read()).find((e) => isMine(e) && e.kind === "pit" && e.eventKey === eventKey && e.teamNumber === teamNumber);
 }
 
 export function listLocal(eventKey: string): LocalEntry[] {
   return Object.values(read())
-    .filter((e) => e.eventKey === eventKey)
+    .filter((e) => isMine(e) && e.eventKey === eventKey)
     .sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
 export function putLocal(entry: LocalEntry): void {
-  write({ ...read(), [entry.id]: entry });
+  write({ ...read(), [entry.id]: { ...entry, owner: entry.owner ?? owner ?? undefined } });
 }
 
 export function removeLocal(id: string): void {
@@ -88,6 +101,8 @@ export function newEntryId(): string {
 }
 
 let flushing = false;
+// True when the last attempt to send could not reach the server.
+let unreachable = false;
 let timer: ReturnType<typeof setTimeout> | null = null;
 
 export function scheduleFlush(delayMs = 2500): void {
@@ -106,8 +121,11 @@ export async function flush(): Promise<number> {
   if (flushing) return pending();
   flushing = true;
   try {
+    const wasUnreachable = unreachable;
+    unreachable = false;
+    if (wasUnreachable) for (const listener of listeners) listener();
     for (const entry of Object.values(read())) {
-      if (!entry.dirty) continue;
+      if (!entry.dirty || !isMine(entry)) continue;
       const sentAt = entry.updatedAt;
       try {
         const result = await api<{ entry: ServerEntry }>(`/events/${entry.eventKey}/${entry.kind === "pit" ? "pit" : "entries"}/${entry.id}`, {
@@ -134,7 +152,9 @@ export async function flush(): Promise<number> {
           continue;
         }
         // No signal, signed out, or the server is busy: try again later.
-        break;
+        unreachable = true;
+        for (const listener of listeners) listener();
+        return pending();
       }
     }
   } finally {
@@ -161,10 +181,14 @@ function messageFor(code: string): string {
 }
 
 export function pending(): number {
-  return Object.values(read()).filter((e) => e.dirty).length;
+  return Object.values(read()).filter((e) => e.dirty && isMine(e)).length;
 }
 
-export function useOutbox(): { entries: Record<string, LocalEntry>; waiting: number } {
+function mine(): Record<string, LocalEntry> {
+  return Object.fromEntries(Object.entries(read()).filter(([, entry]) => isMine(entry)));
+}
+
+export function useOutbox(): { entries: Record<string, LocalEntry>; waiting: number; unreachable: boolean } {
   const [, setTick] = useState(0);
   useEffect(() => {
     const listener = () => setTick((n) => n + 1);
@@ -173,11 +197,13 @@ export function useOutbox(): { entries: Record<string, LocalEntry>; waiting: num
       listeners.delete(listener);
     };
   }, []);
-  return { entries: read(), waiting: pending() };
+  return { entries: mine(), waiting: pending(), unreachable };
 }
 
 // Keep trying in the background for as long as the page is open.
-export function startOutbox(): () => void {
+export function startOutbox(scoutName: string): () => void {
+  owner = ownerKey(scoutName);
+  for (const listener of listeners) listener();
   const interval = setInterval(() => {
     if (pending() > 0) void flush();
   }, 15_000);
@@ -187,5 +213,6 @@ export function startOutbox(): () => void {
   return () => {
     clearInterval(interval);
     window.removeEventListener("online", online);
+    owner = null;
   };
 }

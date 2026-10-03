@@ -123,7 +123,7 @@ export function PitEntry({ teamNumber }: { teamNumber: number }) {
     navigate("/scout/pit");
   }
 
-  const saveState = entry.dirty ? (live === "offline" ? "Saved on this phone. It sends when the signal returns." : "Saving…") : entry.status === "submitted" ? "Submitted" : "Saved";
+  const saveState = entry.dirty ? (live === "offline" || outbox.unreachable ? "Saved on this phone. It sends when the signal returns." : "Saving…") : entry.status === "submitted" ? "Submitted" : "Saved";
 
   return (
     <main className="page entry-page">

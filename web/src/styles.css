@@ -411,3 +411,13 @@ td .chip + .chip { margin-left: 6px; }
 .chart g:focus-visible .chart-bar { stroke: var(--text); stroke-width: 2; }
 .chart-readout { margin-top: 6px; font-size: 0.9rem; min-height: 1.4em; }
 .chart-select { min-height: 34px; padding: 2px 8px; background: var(--navy-950); border: 1px solid var(--line-strong); border-radius: var(--radius-small); }
+
+/* Briefs */
+.brief-title { display: inline-flex; align-items: center; gap: 8px; }
+.brief-title svg { color: var(--gold); }
+.brief-text { max-width: 78ch; }
+.brief-text h3 { margin: 14px 0 6px; font-size: 1.05rem; color: var(--gold); }
+.brief-text h3:first-child { margin-top: 0; }
+.brief-text ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
+.brief-text p { margin: 6px 0; }
+.brief-caveat { font-size: 0.85rem; }

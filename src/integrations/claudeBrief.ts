@@ -31,6 +31,68 @@ function getApiKey(): string {
   return key;
 }
 
+export interface ClaudeRequest {
+  model: string;
+  system: string;
+  // Sent first and cached, so repeated briefs for the same event cost less.
+  context: string;
+  prompt: string;
+  maxTokens: number;
+}
+
+export interface ClaudeReply {
+  text: string;
+  model: string;
+  cacheCreate: number;
+  cacheRead: number;
+}
+
+// One call to the Anthropic API. Shared by the original match briefs and the hub.
+export async function requestClaude(request: ClaudeRequest): Promise<ClaudeReply> {
+  const apiKey = getApiKey();
+  const response = await fetch(ANTHROPIC_API_URL, {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      model: request.model,
+      max_tokens: request.maxTokens,
+      system: [{ type: "text", text: request.system, cache_control: { type: "ephemeral" } }],
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: request.context, cache_control: { type: "ephemeral" } },
+            { type: "text", text: request.prompt }
+          ]
+        }
+      ]
+    })
+  });
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Anthropic API error: ${response.status} ${response.statusText} — ${body.slice(0, 300)}`);
+  }
+  const data = (await response.json()) as {
+    content?: Array<{ type: string; text?: string }>;
+    usage?: { cache_creation_input_tokens?: number; cache_read_input_tokens?: number };
+    model?: string;
+  };
+  const text = (data.content ?? [])
+    .filter((block) => block.type === "text" && typeof block.text === "string")
+    .map((block) => block.text as string)
+    .join("\n\n");
+  return {
+    text,
+    model: data.model ?? request.model,
+    cacheCreate: data.usage?.cache_creation_input_tokens ?? 0,
+    cacheRead: data.usage?.cache_read_input_tokens ?? 0
+  };
+}
+
 const SYSTEM_PROMPT = `You are a tactical match analyst for FRC Team 1884 Griffins at Newton Division, FIRST Championship 2026 (Houston). The robot is a HYBRID DEFENDER + FERRY: long rectangle, fast and agile, premium pin/box-out drivers within G418's 5-second limit. The robot CANNOT shoot, store fuel, or climb.
 
 ROLE FLIPS BY HUB STATE:

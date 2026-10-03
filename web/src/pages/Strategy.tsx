@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { allFields, type EntryData, type GameDefinition, type RpResult } from "@shared/games/index";
 import type { ScheduleMatch } from "@shared/schedule";
 import { BarChart } from "../components/BarChart";
+import { Brief } from "../components/Brief";
 import { formatValue } from "../components/fields";
 import { Chip, describeError, Empty, Link, Loading, Notice, Page, Panel } from "../components/ui";
 import { api } from "../lib/api";
@@ -176,6 +177,8 @@ function Overview() {
           </ul>
         )}
       </Panel>
+
+      <Brief kind="event" subject="summary" title="Event digest" />
 
       <div className="split">
         <Panel title="Strongest robots so far" aside="Points a match, from scouting">
@@ -502,6 +505,8 @@ export function TeamDetail({ teamNumber }: { teamNumber: number }) {
           ) : null}
         </>
       )}
+
+      {team.matchesObserved > 0 || team.pit ? <Brief kind="team" subject={String(team.teamNumber)} title="Profile" /> : null}
 
       <div className="split">
         <Panel title="Public figures">
@@ -830,6 +835,7 @@ function Matches({ matchKey }: { matchKey: string | null }) {
             <AllianceCard side="red" outlook={data.outlook.red} teams={data.teams} ourTeam={data.ourTeam} />
             <AllianceCard side="blue" outlook={data.outlook.blue} teams={data.teams} ourTeam={data.ourTeam} />
           </div>
+          <Brief key={data.outlook.matchKey} kind="match" subject={data.outlook.matchKey} title="Match brief" />
         </>
       ) : null}
     </>

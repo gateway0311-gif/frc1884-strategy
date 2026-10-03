@@ -165,6 +165,25 @@ const MIGRATIONS: Migration[] = [
       `);
     },
   },
+  {
+    id: 5,
+    name: "hub_briefs",
+    up(db) {
+      db.exec(`
+        CREATE TABLE hub_briefs (
+          event_key TEXT NOT NULL,
+          kind TEXT NOT NULL CHECK (kind IN ('match', 'team', 'event')),
+          subject TEXT NOT NULL,
+          content_md TEXT NOT NULL,
+          data_hash TEXT NOT NULL,
+          model TEXT NOT NULL,
+          requested_by TEXT,
+          generated_at TEXT NOT NULL,
+          PRIMARY KEY (event_key, kind, subject)
+        );
+      `);
+    },
+  },
 ];
 
 export function runMigrations(db: Database.Database): number[] {

@@ -23,6 +23,7 @@ interface AdminEvent {
   teamCount: number;
   matchCount: number;
   lastSync: { at: string; steps: SyncStep[] } | null;
+  ourRobot: string;
 }
 
 interface Overview {
@@ -65,6 +66,7 @@ export function AdminPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [teamDraft, setTeamDraft] = useState<string | null>(null);
+  const [robotDraft, setRobotDraft] = useState<Record<string, string>>({});
 
   const data = overview.data;
 
@@ -149,6 +151,23 @@ export function AdminPage() {
               {event.teamCount} teams, {event.matchCount} matches. Last import {formatAgo(event.lastSync?.at, now)}.
             </p>
             {event.lastSync ? <SyncSteps steps={event.lastSync.steps} /> : null}
+            {active ? (
+              <label className="field" style={{ marginTop: 12 }}>
+                <span>What our robot does at this event</span>
+                <textarea
+                  value={robotDraft[event.eventKey] ?? event.ourRobot}
+                  placeholder="For example: fast defender that ferries fuel when our hub is active. Does not shoot or climb."
+                  onChange={(e) => setRobotDraft({ ...robotDraft, [event.eventKey]: e.target.value })}
+                  onBlur={() => {
+                    const draft = robotDraft[event.eventKey];
+                    if (draft !== undefined && draft !== event.ourRobot) {
+                      void run("robot", () => api(`/admin/events/${event.eventKey}`, { method: "PUT", body: { ourRobot: draft } }));
+                    }
+                  }}
+                />
+                <span className="field-help">The AI briefs build their advice on this. Saved when you leave the box.</span>
+              </label>
+            ) : null}
             <div className="row" style={{ marginTop: 12 }}>
               <button
                 type="button"

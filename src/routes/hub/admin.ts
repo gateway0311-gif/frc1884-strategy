@@ -34,6 +34,7 @@ function overview() {
       teamCount: e.team_count,
       matchCount: e.match_count,
       lastSync: lastSync(String(e.event_key)),
+      ourRobot: getSetting(`our_robot:${e.event_key}`) ?? "",
     })),
     games: listGames(),
     ourTeam: Number(getSetting("team_number") ?? 1884),
@@ -77,7 +78,11 @@ export async function hubAdminRoutes(app: FastifyInstance) {
   app.put<{ Params: { eventKey: string } }>("/admin/events/:eventKey", guard, async (request, reply) => {
     const { eventKey } = request.params;
     if (!getEvent(eventKey)) return reply.code(404).send({ error: "event_not_found" });
-    const body = (request.body ?? {}) as { gameId?: unknown; name?: unknown };
+    const body = (request.body ?? {}) as { gameId?: unknown; name?: unknown; ourRobot?: unknown };
+    if (typeof body.ourRobot === "string") {
+      // What our robot does at this event, in the lead's words. The AI briefs build on it.
+      setSetting(`our_robot:${eventKey}`, body.ourRobot.trim().slice(0, 1500));
+    }
     if (body.gameId !== undefined) {
       if (typeof body.gameId !== "string" || !GAMES[body.gameId]) return reply.code(400).send({ error: "unknown_game" });
       db.prepare(`UPDATE events SET game_id = ?, updated_at = CURRENT_TIMESTAMP WHERE event_key = ?`).run(body.gameId, eventKey);

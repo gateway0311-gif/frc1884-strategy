@@ -13,6 +13,7 @@ import { MorePage } from "./pages/More";
 import { PitEntry, PitList } from "./pages/Pit";
 import { ScoutEntry, ScoutHome, ScoutPick } from "./pages/Scout";
 import { SignIn } from "./pages/SignIn";
+import { StrategyPage } from "./pages/Strategy";
 
 function LiveBadge() {
   const state = useLiveState();
@@ -45,6 +46,8 @@ function Routes({ path }: { path: string }) {
       if (rest[0] === "pick") return <ScoutPick />;
       if (rest[0] === "pit") return rest[1] ? <PitEntry key={rest[1]} teamNumber={Number(rest[1])} /> : <PitList />;
       return <ScoutHome />;
+    case "strategy":
+      return <StrategyPage rest={rest} />;
     case "manager":
       return <ManagerPage rest={rest} />;
     case "admin":

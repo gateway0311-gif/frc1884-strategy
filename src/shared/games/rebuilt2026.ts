@@ -222,10 +222,19 @@ export const rebuilt2026: GameDefinition = {
     { key: "auto_climb_rate", label: "Auto climb rate", short: "Auto climb", agg: { kind: "rate", field: "auto_climb", equals: true }, percent: true, higherIsBetter: true },
     { key: "climb_rate", label: "Climb success rate", short: "Climb", agg: { kind: "selectRate", field: "climb_level", values: ["l1", "l2", "l3"] }, percent: true, higherIsBetter: true },
     { key: "climb_points", label: "Teleop climb points per match", short: "Climb pts", agg: { kind: "avgPoints", field: "climb_level", points: TELEOP_CLIMB_POINTS }, decimals: 1, higherIsBetter: true },
-    { key: "scoring_rating", label: "Scoring rating", short: "Scoring", agg: { kind: "ratingAvg", field: "scoring_rating" }, decimals: 2, higherIsBetter: true },
-    { key: "defence_rating", label: "Defence rating", short: "Defence", agg: { kind: "ratingAvg", field: "defence_rating" }, decimals: 2, higherIsBetter: true },
+    { key: "scoring_rating", label: "Scoring rating", short: "Scoring", agg: { kind: "ratingAvg", field: "scoring_rating" }, decimals: 1, higherIsBetter: true },
+    { key: "defence_rating", label: "Defence rating", short: "Defence", agg: { kind: "ratingAvg", field: "defence_rating" }, decimals: 1, higherIsBetter: true },
   ],
   headlineMetric: "teleop_fuel",
+  predictInputs(teams) {
+    let fuel = 0;
+    let climb = 0;
+    for (const team of teams) {
+      fuel += (team.auto_fuel ?? 0) + (team.teleop_fuel ?? 0);
+      climb += (team.climb_points ?? 0) + (team.auto_climb_rate ?? 0) * AUTO_CLIMB_POINTS;
+    }
+    return { fuel, climb };
+  },
   entryPoints(data) {
     const number = (key: string) => (typeof data[key] === "number" ? (data[key] as number) : 0);
     const climb = typeof data.climb_level === "string" ? (TELEOP_CLIMB_POINTS[data.climb_level] ?? 0) : 0;

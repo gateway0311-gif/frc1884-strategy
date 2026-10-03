@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 
 import { hubAdminRoutes } from "./admin.js";
+import { hubAnalysisRoutes } from "./analysis.js";
 import { hubAuthRoutes } from "./auth.js";
 import { hubLiveRoutes } from "./live.js";
 import { hubManagerRoutes } from "./manager.js";
@@ -16,5 +17,6 @@ export async function hubRoutes(app: FastifyInstance) {
   await app.register(hubScoutRoutes);
   await app.register(hubManagerRoutes);
   await app.register(hubPitRoutes);
+  await app.register(hubAnalysisRoutes);
   await app.register(hubAdminRoutes);
 }

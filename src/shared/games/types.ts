@@ -150,6 +150,9 @@ export interface GameDefinition {
   entryPoints?(data: EntryData): number;
   // Places where what a team said in the pits does not match what scouts saw.
   pitMismatches?(pit: EntryData, observed: Record<string, number>, matchesObserved: number): string[];
+  // What an alliance is expected to put up, from its teams' compiled figures.
+  // Returns the same keys as allianceInputs.
+  predictInputs(teams: Array<Record<string, number>>): Record<string, number>;
   // The metric shown first and used for trends.
   headlineMetric: string;
   // Plain-language game summary handed to the AI brief writer.
